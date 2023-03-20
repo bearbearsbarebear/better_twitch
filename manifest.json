@@ -1,0 +1,29 @@
+{
+	"manifest_version": 2,
+	"name": "Better Twitch",
+	"version": "1.0",
+	"description": "Removes annoying stuffs from Twitch.tv.",
+	"icons": {
+		"48": "icons/invalid.png",
+		"96": "icons/invalid.png"
+	},
+	"browser_action": {
+		"default_icon": "icons/invalid.png",
+		"default_title": "Follow Channel"
+	},
+	"permissions": [
+		"activeTab",
+		"tabs",
+		"storage",
+		"webNavigation"
+	],
+	"content_scripts": [
+		{
+			"matches": ["https://www.twitch.tv/*"],
+			"js": ["content.js"]
+		}
+	],
+	"background": {
+		"scripts": ["background.js"]
+	}
+}

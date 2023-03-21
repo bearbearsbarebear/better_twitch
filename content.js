@@ -34,7 +34,6 @@ const observer = new MutationObserver(() =>
 			const displayValue = window.getComputedStyle(div).getPropertyValue("display");
 			if (displayValue != "none") {
 				div.style.display = "none";
-				console.log(`Removed element with xpath: ${xpath}`);
 				found_not_hidden = 1;
 			}
 		}
@@ -53,7 +52,6 @@ function clear_recommendations(parentElement)
 			childElements.forEach((child) => {
 				if (parentElement != child) {
 					child.remove();
-					console.log("Removed one channel recommendation");
 				}
 
 			});
@@ -66,28 +64,152 @@ function clear_recommendations(parentElement)
 	return false;
 }
 
-const channel_innerhtml = '<div><div class="Layout-sc-1xcs6mc-0 bZVrjx side-nav-card" data-test-selector="side-nav-card"><a data-a-id="recommended-channel-1" data-test-selector="recommended-channel" class="ScCoreLink-sc-16kq0mq-0 jKBAWW InjectLayout-sc-1i43xsx-0 fpJafq side-nav-card__link tw-link" href="/bebe872"><div class="Layout-sc-1xcs6mc-0 dutbes side-nav-card__avatar"><figure aria-label="bebe872" class="ScAvatar-sc-144b42z-0 fUKwUf tw-avatar"><img class="InjectLayout-sc-1i43xsx-0 bEwPpb tw-image tw-image-avatar" alt="bebe872" src="https://static-cdn.jtvnw.net/jtv_user_pictures/bbc6e857-1557-477e-aea7-d10550dd9ca2-profile_image-70x70.png"></figure></div><div class="Layout-sc-1xcs6mc-0 jQTQnr"><div data-a-target="side-nav-card-metadata" class="Layout-sc-1xcs6mc-0 eCunGK"><div class="Layout-sc-1xcs6mc-0 beAYWq side-nav-card__title"><p title="bebe872" data-a-target="side-nav-title" class="CoreText-sc-1txzju1-0 iQYdBM InjectLayout-sc-1i43xsx-0 gaLyxR">bebe872</p></div><div class="Layout-sc-1xcs6mc-0 fFENuB side-nav-card__metadata" data-a-target="side-nav-game-title"><p title="Teamfight Tactics" class="CoreText-sc-1txzju1-0 bApHMU">Teamfight Tactics</p></div></div><div class="Layout-sc-1xcs6mc-0 kzjhVk side-nav-card__live-status" data-a-target="side-nav-live-status"><div class="Layout-sc-1xcs6mc-0 beAYWq"><div class="ScChannelStatusIndicator-sc-bjn067-0 dMXHmM tw-channel-status-indicator" aria-label="Live"></div><div class="Layout-sc-1xcs6mc-0 kaXoQh"><span aria-label="1.5K viewers" class="CoreText-sc-1txzju1-0 grGUPN">1.5K</span></div></div></div></div></a></div></div>';
-
-function check_recommendations(parentElement)
+function clear_custom_recommendations()
 {
-	const newDiv = document.createElement('div');
-	newDiv.innerHTML = channel_innerhtml.replace(/recommended-channel-\d+/g, `recommended-channel-${NUMBER_OF_RECOMENDATIONS}`);
-	parentElement.appendChild(newDiv);
-	console.log("Added custom recommended channel");
+	const custom_recomm = document.evaluate('//*[@id="channels-list"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+	const clone = document.evaluate('//*[@id="cleared-channels-list-copy"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+	let recomms_new = clone.cloneNode(true);
+	recomms_new.id = 'channels-list';
+	recomms_new.style.display = 'initial';
+	custom_recomm.after(recomms_new);
+	custom_recomm.remove();
+}
 
-	NUMBER_OF_RECOMENDATIONS += 1;
+function checkIfUserIsStreaming(username) 
+{
+	const url = "https://gql.twitch.tv/gql";
+	const query = `query {
+		user(login: "${username}") {
+			stream {
+				id
+				title
+				viewersCount
+				createdAt
+				game {
+					name
+				}
+			}
+		}
+	}`;
+
+	const headers = {
+		"client-id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+		"Content-Type": "application/json",
+	};
+
+	return fetch(url, {
+		method: "POST",
+		headers: headers,
+		body: JSON.stringify({ query: query, variables: {} }),
+	})
+	.then((response) => response.json())
+	.then((data) => {
+		return data;
+	})
+	.catch((error) => {
+		console.error(error);
+		return false;
+	});
+}
+
+function format_views(num) {
+	if (num >= 1000) {
+		return (num / 1000).toLocaleString('en-US', {maximumFractionDigits:1}) + 'k';
+	} else {
+		return num.toLocaleString('en-US');
+	}
+}
+
+const channel_innerhtml = '<div><div class="Layout-sc-1xcs6mc-0 bZVrjx side-nav-card" data-test-selector="side-nav-card"><a data-a-id="recommended-channel-1" data-test-selector="recommended-channel" class="ScCoreLink-sc-16kq0mq-0 jKBAWW InjectLayout-sc-1i43xsx-0 fpJafq side-nav-card__link tw-link" href="/streamer_user"><div class="Layout-sc-1xcs6mc-0 dutbes side-nav-card__avatar"><figure aria-label="streamer_user" class="ScAvatar-sc-144b42z-0 fUKwUf tw-avatar"><img class="InjectLayout-sc-1i43xsx-0 bEwPpb tw-image tw-image-avatar" alt="streamer_user" src="avatar_url"></figure></div><div class="Layout-sc-1xcs6mc-0 jQTQnr"><div data-a-target="side-nav-card-metadata" class="Layout-sc-1xcs6mc-0 eCunGK"><div class="Layout-sc-1xcs6mc-0 beAYWq side-nav-card__title"><p title="streamer_user" data-a-target="side-nav-title" class="CoreText-sc-1txzju1-0 iQYdBM InjectLayout-sc-1i43xsx-0 gaLyxR">streamer_user</p></div><div class="Layout-sc-1xcs6mc-0 fFENuB side-nav-card__metadata" data-a-target="side-nav-game-title"><p title="game_name" class="CoreText-sc-1txzju1-0 bApHMU">game_name</p></div></div><div class="Layout-sc-1xcs6mc-0 kzjhVk side-nav-card__live-status" data-a-target="side-nav-live-status"><div class="Layout-sc-1xcs6mc-0 beAYWq"><div class="ScChannelStatusIndicator-sc-bjn067-0 dMXHmM tw-channel-status-indicator" aria-label="Live"></div><div class="Layout-sc-1xcs6mc-0 kaXoQh"><span aria-label="viewers_num viewers" class="CoreText-sc-1txzju1-0 grGUPN">viewers_num</span></div></div></div></div></a></div></div>';
+let followed_channels = [];
+function execute_recommendations()
+{
+	if (followed_channels.length > 0) {
+		clear_custom_recommendations();
+
+		const parentElement = document.evaluate('//*[@id="channels-list"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+		followed_channels.forEach(channel => {
+			if (channel[0]) {
+				const username = channel[0].replace('https://www.twitch.tv/', '').replace('/', '');
+				checkIfUserIsStreaming(username).then((result) => {
+					if (result.data.user.stream) {
+						const game_name = result.data.user.stream.game.name;
+						let views = format_views(parseInt(result.data.user.stream.viewersCount));
+
+						const avi_url = channel[1];
+
+						const new_div = document.createElement('div');
+
+						// This can potentially lead to XSS
+						let div_innerhtml = channel_innerhtml.replace(/recommended-channel-\d+/g, `recommended-channel-${NUMBER_OF_RECOMENDATIONS}`);
+						div_innerhtml = div_innerhtml.replace(/streamer_user/g, `${username}`);
+						div_innerhtml = div_innerhtml.replace(/avatar_url/g, `${avi_url}`);
+						div_innerhtml = div_innerhtml.replace(/viewers_num/g, `${views}`);
+						div_innerhtml = div_innerhtml.replace(/game_name/g, `${game_name}`);
+
+						new_div.innerHTML = div_innerhtml;
+						parentElement.appendChild(new_div);
+
+						NUMBER_OF_RECOMENDATIONS += 1;
+					}
+				});
+			}
+		});
+	}
 }
 
 // Observer for the recommended channels
 const channels = new MutationObserver(() => {
 	// Get the parent element that contains all the recommended channels
+	// This is inside side-nav
+	// The goal is to clear it, copy it and hide the original (twitch changes it every now and then)
 	const parentElement = document.evaluate('/html/body/div[1]/div/div[2]/div/div[1]/div/div/div/div[3]/div/div/div[2]/nav/div/div/div[1]/div/div[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 	if (clear_recommendations(parentElement)) {
 		channels.disconnect();
 
-		check_recommendations(parentElement);
-		setInterval(check_recommendations, 20000, parentElement);
+		const side_nav = document.evaluate('/html/body/div[1]/div/div[2]/div/div[1]/div[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		let side_nav_2 = side_nav.cloneNode(true);
+		side_nav_2.id = 'side-nav-2';
+		side_nav.after(side_nav_2);
+		side_nav.style.display = 'none';
+
+		const parentElement = document.evaluate('/html/body/div[1]/div/div[2]/div/div[1]/div[2]/div/div/div[3]/div/div/div[2]/nav/div/div/div[1]/div/div[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+		let recomms_list = parentElement.cloneNode(true);
+		recomms_list.id = 'channels-list';
+		parentElement.after(recomms_list);
+
+		let cleared_copy = parentElement.cloneNode(true);
+		cleared_copy.id = 'cleared-channels-list-copy';
+		cleared_copy.style.display = 'none';
+		parentElement.after(cleared_copy);
+
+		parentElement.remove();
+
+		execute_recommendations();
+		setInterval(execute_recommendations, 60000);
 	}
 });
 
 channels.observe(document.body, { childList: true, subtree: true });
+
+// Retrieve followed channels from the background script
+browser.runtime.onMessage.addListener((message) => 
+{
+	if (message.command == "channel_list") {
+		followed_channels = message.channels;
+	} else if (message.command == "clicked") {
+		execute_recommendations();
+	} else if (message.command == "getAvatarUrl") {
+		const parentElement = document.evaluate('/html/body/div[1]/div/div[2]/div/main/div[1]/div[3]/div/div/div[1]/div[1]/div[2]/div/section/div/div/div/div/div[1]/div/div/div/a/div[1]/figure/img', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		const avatarUrl = parentElement.getAttribute('src');
+		if (avatarUrl) {
+			browser.runtime.sendMessage({
+				command: 'updateAvatar',
+				channel: message.url,
+				avatar: avatarUrl
+			});
+		}
+	}
+});

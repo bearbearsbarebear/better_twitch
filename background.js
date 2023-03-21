@@ -19,10 +19,12 @@ function update_icon()
 	if (current_tab) {
 		if (twitch_regex.test(current_tab)) {
 			let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
-			if (followed_channels.includes(current_tab)) {
+			let index = followed_channels.findIndex(info => info[0] === current_tab);
+
+			extension_icon = "icons/follow.png";
+
+			if (index != -1) {
 				extension_icon = "icons/unfollow.png";
-			} else {
-				extension_icon = "icons/follow.png";
 			}
 		} else {
 			extension_icon = "icons/invalid.png";
@@ -39,7 +41,15 @@ function update_active_tab()
 		if (tabs.length > 0) {
 			current_tab = tabs[0].url;
 			update_icon();
-			console.log(current_tab);
+
+			if (extension_icon != "icons/invalid.png") {
+				let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
+				// Send messsage to content.js with the localStorage
+				browser.tabs.sendMessage(tabs[0].id, {
+					command: 'channel_list',
+					channels: followed_channels,
+				});
+			}
 		}
 	});
 }
@@ -54,37 +64,73 @@ browser.tabs.onActivated.addListener(update_active_tab);
 // listen for window switching
 browser.windows.onFocusChanged.addListener(update_active_tab);
 
+// TODO:
+// Need to check if page is properly loaded
+// Add cooldown between follows to avoid spam
+// Check if followed channel is truly a channel
 function follow_channel()
 {
+	browser.tabs.query({active: true, currentWindow: true}).then(tabs => 
+	{
+		if (tabs.length > 0) {
+			let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
+			// Send messsage to content.js with the localStorage
+			browser.tabs.sendMessage(tabs[0].id, {
+				command: 'channel_list',
+				channels: followed_channels,
+			});
+
+			// Send messsage to content.js that addon has been clicked
+			browser.tabs.sendMessage(tabs[0].id, {
+				command: 'clicked',
+			});
+		}
+	});
+
 	if (extension_icon == "icons/follow.png") {
 		let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
-		followed_channels.push(current_tab);
-		
+
+		followed_channels.push([current_tab, null]);
+
 		localStorage.setItem('followed_channels', JSON.stringify(followed_channels));
 
 		update_icon();
-		console.log("Channel followed: ", current_tab);
+
+		// Ask content.js for the avatar element
+		browser.tabs.query({active: true, currentWindow: true}, function(tabs) {
+			browser.tabs.sendMessage(tabs[0].id, {
+				command: 'getAvatarUrl',
+				url: tabs[0].url,
+			});
+		});
 	} else if (extension_icon == "icons/unfollow.png") {
 		let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
-		let index = followed_channels.indexOf(current_tab);
+		let index = followed_channels.findIndex(info => info[0] === current_tab);
 
 		if (index != -1) {
 			followed_channels.splice(index, 1);
 		}
 
-		localStorage.setItem('followed_channels', JSON.stringify(followed_channels));
+		localStorage.setItem('followed_channels', JSON.stringify([followed_channels]));
 
 		update_icon();
-
-		console.log("Channel unfollowed: ", current_tab);
-
-		/*
-		console.log("Channels List:");
-		followed_channels.forEach(channel => {
-		    console.log(channel);
-		});
-		*/
 	}
 }
 
 browser.browserAction.onClicked.addListener(follow_channel);
+
+// Update avatar
+browser.runtime.onMessage.addListener(function(message) 
+{
+	if (message.command == 'updateAvatar') {
+		let followed_channels = JSON.parse(localStorage.getItem('followed_channels')) || [];
+		let index = followed_channels.findIndex(info => info[0] === message.channel);
+
+		// If the object is found, update its avatarUrl property
+		if (index !== -1) {
+			followed_channels[index][1] = message.avatar;
+		}
+
+		localStorage.setItem('followed_channels', JSON.stringify(followed_channels));
+	}
+});

@@ -68,6 +68,7 @@ browser.windows.onFocusChanged.addListener(update_active_tab);
 // Need to check if page is properly loaded
 // Add cooldown between follows to avoid spam
 // Check if followed channel is truly a channel
+// Create window message to tell the user he followed/unfollowed
 function follow_channel()
 {
 	browser.tabs.query({active: true, currentWindow: true}).then(tabs => 

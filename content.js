@@ -34,7 +34,6 @@ const observer = new MutationObserver(() =>
 			const displayValue = window.getComputedStyle(div).getPropertyValue("display");
 			if (displayValue != "none") {
 				div.style.display = "none";
-				found_not_hidden = 1;
 			}
 		}
 	});

@@ -6,4 +6,4 @@ This extension accomplishes:
 * Removes buttons that require an account
 * Redirects the homepage to /directory
 
-Under development.
+While this can be utilized, there are unresolved bugs that need to be addressed, along with additional features that could be implemented.
